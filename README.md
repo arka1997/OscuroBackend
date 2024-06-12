@@ -7,7 +7,7 @@ First download mongo db community server : https://www.mongodb.com/try/download/
 
 This above link will install MongoDB compass as well. Pin it to Taskbar, at the first opening.
 Then connect to MongoDB localhost in Compass.
-Create the DB
+Create the DB in Compass.
 
 In codebase, open the terminal -> and open the folder where code is located -> Then run the following commands ->
 npm i express mongoose axios cors nodemon
@@ -18,5 +18,5 @@ npm i axios
 
 **Run the application: npm start index.js**
 
-For cloning a reposiotry from Github, and start making commits: just use -> git init -> git clone URL -> then pushing code.
+For cloning a repository from Github, and start making commits: just use -> git init -> git clone URL -> then pushing code.
 
