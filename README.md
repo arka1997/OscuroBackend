@@ -2,6 +2,7 @@ Backend:
 
 Mongo DB -> 
 First download mongo db community server : https://www.mongodb.com/try/download/community
+
 <img width="436" alt="image" src="https://github.com/arka1997/OscuroBackend/assets/61291733/1159c152-3c5e-45ae-bd67-1caed7ece298">
 
 This above link will install MongoDB compass as well. Pin it to Taskbar, at the first opening.
