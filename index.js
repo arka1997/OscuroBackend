@@ -6,7 +6,7 @@ const fs = require('fs');// Different file interactions, like creating new file 
 const path = require('path');
 
 const app = express();
-app.use(express.static('uploads'))//???????????????
+app.use(express.static('uploads'))// Its a the static directory, here "uploads", now, declaring this means, we are allowing requests coming from UI to access the uploads folder for images. Basically this line serves the requests.
 
 const port = 4000;
 
@@ -45,23 +45,91 @@ const licurbookSchema = new mongoose.Schema({
     postLikes: Number,
     timestamp: String
 });
-
-const Licurbook = mongoose.model('Licurbook', licurbookSchema);
+const postCommentSchema = new mongoose.Schema({
+    postId: Number,
+    parentCommentMessage: String,
+    userName: String,
+    commentLikes: Number,
+    timestamp: String
+});
+const PostComment = mongoose.model('PostComment', postCommentSchema);
 
 app.get('/fetchPosts', async (req,res) => {
     try{
         // ???*** To fix this issue, you need to await the execution of the query and retrieve the actual data from the database before sending it as a response. You can do this by adding await before Licurbook.find():
-        const allPosts = await Licurbook.find()
-        .then(result => res.json(result))
+        await Licurbook.find()
+        .then(allPosts => res.json(allPosts))
         .catch(err => console.log(err))
         
     }catch (error) {
         console.error('Error fetching examples:', error);
+        log.Error('Error fetching examples:', error)
         res.status(500).json({ error: 'Internal Server Error' });
       }
+});
+
+app.get('/getLikes/:postId', async (req, res) => {
+    try {
+        const { postId } = req.params;
+        
+            await Licurbook.findById(postId)
+            .then(response => res.json(response))
+            .catch(err => console.log(err))
+            
+    }catch (error) {
+        console.error('Error fetching examples:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+      }
+});
+
+app.post('/updateLikes/:postId/:postLikes', async (req, res) => {
+    
+    try {
+        const { postId, postLikes } = req.params;
+        const updateLikes = await Licurbook.updateOne(
+            { _id: postId },
+            { $set: { postLikes: postLikes } }
+        );
+
+        console.log(req.params)
+        // Check if the post exists
+        if (updateLikes.matchedCount === 0) {
+            throw new Error('Post Not found');
+        }
+
+        // Return the updated like count
+        res.json({ message: 'Post likes updated successfully' });
+    } catch (error) {
+        
+        if (error.message === 'Post Not found') {
+            // If the post doesn't exist, return a 404 error
+            return res.status(404).json({ error: 'Post not found' });
+        } else {
+            console.log("error")
+            // Handle other errors
+            res.status(500).json({ error: 'Some error occurred', message: error.message });
+        }
+    }
+});
+
+app.post('/postComments/:postId/:message', async (req,res) => {
+    try{
+        console.log(req);
+        const {postId, message} = req.body;
+        const newPostComment = new PostComment({
+        postId: postId,
+        parentCommentMessage : message,
+        userName: userName,
+        commentLikes: commentLikes,
+        timestamp: timestamp
+        })
+        newPostComment.save();
+        res.status(200).json({ message: 'Post added successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
 })
-
-
 // Route to handle form submission with file upload
 app.post('/addPost', upload.single('postImage'), async (req, res) => {
     console.log(req.file);
