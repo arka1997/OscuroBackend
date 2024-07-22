@@ -32,32 +32,36 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-mongoose.connect("mongodb://localhost:27017/licurbookDB", {
+mongoose.connect("mongodb://localhost:27017/oscurobookDB", {
     useNewUrlParser: true,
     useUnifiedTopology: true
 })
 .then(() => console.log("MongoDB Connected"))
 .catch((err) => console.log("MongoDB Connection failed with", err));
-const licurbookSchema = new mongoose.Schema({
+
+const oscurobookSchema = new mongoose.Schema({
     postImage: String,
     postText: String,
     userName: String,
     postLikes: Number,
     timestamp: String
 });
+
 const postCommentSchema = new mongoose.Schema({
-    postId: Number,
-    parentCommentMessage: String,
-    userName: String,
-    commentLikes: Number,
-    timestamp: String
-});
+    postId: { type: mongoose.Schema.Types.ObjectId, ref: 'Oscurobook', required: true },
+    rootMessage: { type: String, required: true },
+    userName: { type: String, required: true },
+    rootCommentLikes: { type: Number, default: 0 },
+    timestamp: { type: Date, default: Date.now }
+  });
+
 const PostComment = mongoose.model('PostComment', postCommentSchema);
+const Oscurobook = mongoose.model('Oscurobook', oscurobookSchema);
 
 app.get('/fetchPosts', async (req,res) => {
     try{
         // ???*** To fix this issue, you need to await the execution of the query and retrieve the actual data from the database before sending it as a response. You can do this by adding await before Licurbook.find():
-        await Licurbook.find()
+        await Oscurobook.find()
         .then(allPosts => res.json(allPosts))
         .catch(err => console.log(err))
         
@@ -65,16 +69,27 @@ app.get('/fetchPosts', async (req,res) => {
         console.error('Error fetching examples:', error);
         log.Error('Error fetching examples:', error)
         res.status(500).json({ error: 'Internal Server Error' });
-      }
+    }
 });
 
 app.get('/getLikes/:postId', async (req, res) => {
     try {
         const { postId } = req.params;
         
-            await Licurbook.findById(postId)
+            await Oscurobook.findById(postId)
             .then(response => res.json(response))
             .catch(err => console.log(err))
+            
+    }catch (error) {
+        console.error('Error fetching examples:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+      }
+});
+app.get('/getPostRootComments/:postId', async (req, res) => {
+    try {
+            const { postId } = req.params;
+            const comments = await PostComment.find({ postId });
+            res.status(200).json({ postComments: comments });
             
     }catch (error) {
         console.error('Error fetching examples:', error);
@@ -86,7 +101,7 @@ app.post('/updateLikes/:postId/:postLikes', async (req, res) => {
     
     try {
         const { postId, postLikes } = req.params;
-        const updateLikes = await Licurbook.updateOne(
+        const updateLikes = await Oscurobook.updateOne(
             { _id: postId },
             { $set: { postLikes: postLikes } }
         );
@@ -112,18 +127,19 @@ app.post('/updateLikes/:postId/:postLikes', async (req, res) => {
     }
 });
 
-app.post('/postComments/:postId/:message', async (req,res) => {
+app.post('/addRootComments/:postId', async (req,res) => {
     try{
-        console.log(req);
-        const {postId, message} = req.body;
+        console.log(req.body);
+        const { postId } = req.params;
+        const { rootMessage, userName, rootCommentLikes, timestamp } = req.body;
         const newPostComment = new PostComment({
         postId: postId,
-        parentCommentMessage : message,
+        rootMessage : rootMessage,
         userName: userName,
-        commentLikes: commentLikes,
+        commentLikes: rootCommentLikes,
         timestamp: timestamp
         })
-        newPostComment.save();
+        await newPostComment.save();
         res.status(200).json({ message: 'Post added successfully' });
     } catch (error) {
         console.error(error);
@@ -137,7 +153,7 @@ app.post('/addPost', upload.single('postImage'), async (req, res) => {
     try {
         const postImage = req.file ? req.file.path : null; // Store the file path in the database
 
-        const newLicurbook = new Licurbook({
+        const newOscurobook = new Oscurobook({
             postImage: postImage,
             postText: postText,
             userName: userName,
@@ -146,7 +162,7 @@ app.post('/addPost', upload.single('postImage'), async (req, res) => {
         });
 
         console.log(req.body)
-        await newLicurbook.save();
+        await newOscurobook.save();
         res.status(200).json({ message: 'Post added successfully' });
     } catch (error) {
         console.error(error);
