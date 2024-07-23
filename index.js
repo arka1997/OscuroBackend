@@ -48,6 +48,7 @@ const oscurobookSchema = new mongoose.Schema({
 });
 
 const postCommentSchema = new mongoose.Schema({
+    // Here "ref", means, it acts as a foreign key. Its the id of the other table, which we want to store in the comment table, to get both the data.
     postId: { type: mongoose.Schema.Types.ObjectId, ref: 'Oscurobook', required: true },
     rootMessage: { type: String, required: true },
     userName: { type: String, required: true },
@@ -71,6 +72,80 @@ app.get('/fetchPosts', async (req,res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
+app.get('/fetchRootComments', async (req, res) => {
+    try {
+        const { postId } = req.query;
+        const query = postId ? { postId: postId } : {}; // Modify field name as per your schema
+        const allRootComments = await PostComment.find(query);
+      
+        // Send the comments as JSON response
+        res.json(allRootComments);
+    } catch (error) {
+        // Log the error to the server console
+        console.error('Error fetching comments:', error.message);
+
+        // Send a 500 status code and error message to the client
+        res.status(500).json({ 
+            error: 'An error occurred while fetching comments', 
+            message: error.message 
+        });
+    }
+});
+
+app.post('/updateRootCommentLikes/:rootCommentId/:rootCommentLikes', async (req, res) => {
+    
+    try {
+        const { rootCommentId, rootCommentLikes } = req.params;
+        const updateRootLikes = await PostComment.updateOne(
+            { _id: rootCommentId },
+            { $set: { rootCommentLikes: rootCommentLikes } }
+        );
+
+        console.log(req.params)
+        // Check if the post exists
+        if (updateRootLikes.matchedCount === 0) {
+            throw new Error('Root Comment Not found');
+        }
+
+        // Return the updated like count
+        res.json({ message: 'Root Comment likes updated successfully' });
+    } catch (error) {
+        
+        if (error.message === 'Root Comment Not found') {
+            // If the post doesn't exist, return a 404 error
+            return res.status(404).json({ error: 'Root Comment not found' });
+        } else {
+            console.log("error")
+            // Handle other errors
+            res.status(500).json({ error: 'Some error occurred', message: error.message });
+        }
+    }
+});
+
+
+
+
+  
+  // Update likes for a comment
+  app.post('/updateRootCommentLikes/:rootCommentId/:likeStatus', async (req, res) => {
+    const { rootCommentId, likeStatus } = req.params;
+    try {
+      const comment = await PostComment.findById(rootCommentId);
+      console.log(comment)
+      comment.rootCommentLikes = parseInt(likeStatus) ? comment.rootCommentLikes + 1 : comment.rootCommentLikes - 1;
+      await comment.save();
+      res.status(200).json({ likes: comment.rootCommentLikes, isLiked: parseInt(likeStatus) });
+    } catch (error) {
+      res.status(500).json({ error: 'Error updating comment likes' });
+    }
+  });
+
+
+
+
+
+
+
 
 app.get('/getLikes/:postId', async (req, res) => {
     try {
@@ -136,11 +211,11 @@ app.post('/addRootComments/:postId', async (req,res) => {
         postId: postId,
         rootMessage : rootMessage,
         userName: userName,
-        commentLikes: rootCommentLikes,
+        rootCommentLikes: rootCommentLikes,
         timestamp: timestamp
         })
         await newPostComment.save();
-        res.status(200).json({ message: 'Post added successfully' });
+        res.status(200).json({ message: 'Comment added successfully' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Internal Server Error' });
